@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 import streamlit as st
 import re
 import json
-
+import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
@@ -565,7 +565,7 @@ def main():
                 sheet_id = "1HiwS7FPYy3Q5tqZ_cG-Dw0Jsqm0f_kjWp2kaEEzdokw"
 
                 address_resto, abn_no = get_restaurant_details_l(resto_name, sheet_id)
-                generate_and_upload_invoice_l(html_template, total_bill, commission_without_tax, tax, commission_with_tax, resto_name, address_resto, abn_no,google_drive_folder_id, credentials_path,id)
+                generate_and_upload_invoice(html_template, total_bill, commission_without_tax, tax, commission_with_tax, resto_name, address_resto, abn_no,google_drive_folder_id, credentials_path,id)
                 st.write(id)
 
         st.write("END")
