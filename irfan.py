@@ -564,8 +564,8 @@ def main():
                 ) = process_csv(start_date_time, end_date_time,csv_df)
                 sheet_id = "1HiwS7FPYy3Q5tqZ_cG-Dw0Jsqm0f_kjWp2kaEEzdokw"
 
-                address_resto, abn_no = get_restaurant_details_l(resto_name, sheet_id)
-                generate_and_upload_invoice(html_template, total_bill, commission_without_tax, tax, commission_with_tax, resto_name, address_resto, abn_no,google_drive_folder_id, credentials_path,id)
+                address_resto, abn_no = get_restaurant_details(resto_name, sheet_id)
+                generate_and_upload_invoice_l(html_template, total_bill, commission_without_tax, tax, commission_with_tax, resto_name, address_resto, abn_no,google_drive_folder_id, credentials_path,id)
                 st.write(id)
 
         st.write("END")
