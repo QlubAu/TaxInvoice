@@ -1,0 +1,11 @@
+requests
+pandas
+streamlit
+oauth2client
+google-auth
+google-auth-oauthlib
+google-api-python-client
+PyPDF2
+pdfkit
+streamlit-authenticator
+gsheet
