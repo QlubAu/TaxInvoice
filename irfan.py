@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 import streamlit as st
 import re
 import json
-import gspread
+
 from oauth2client.service_account import ServiceAccountCredentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
@@ -180,7 +180,35 @@ def get_csv_from_api(start_date_time,end_date_time,resto_id):
     data = StringIO(response.text)
     return pd.read_csv(data, sep=",") if response.status_code == 200 else None
 
+import pandas as pd
+from googleapiclient.discovery import build
+from google.oauth2 import service_account
 
+def get_restaurant_details_l(restaurant_name, sheet_id):
+
+  # Authenticate with service account credentials
+  creds = service_account.Credentials.from_service_account_file(
+      'client_secret_811309362652-buvv861nns47b9dsr0en9i2g5bjlhpsg.apps.googleusercontent.com.json',
+      scopes=['https://www.googleapis.com/auth/spreadsheets.readonly'])
+
+  service = build('sheets', 'v4', credentials=creds)
+
+  # Call the Sheets API to get sheet data
+  sheet = service.spreadsheets()
+  result = sheet.values().get(spreadsheetId=sheet_id, range='Sheet2!A:Z').execute()
+  values = result.get('values', [])
+
+  # Convert to DataFrame
+  df = pd.DataFrame(values[1:], columns=values[0])
+
+  # Find restaurant row
+  restaurant_row = df.loc[df['restaurant_unique'] == restaurant_name]
+
+  # Get address and ABN
+  address_resto = restaurant_row['address1'].values[0] if not restaurant_row.empty else ''
+  abn_no = restaurant_row['config.abn'].values[0] if not restaurant_row.empty else ''
+
+  return address_resto, abn_no
 def get_restaurant_details(restaurant_name, sheet_id):
     # Define the scope
     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive.file", "https://www.googleapis.com/auth/drive"]
@@ -194,8 +222,7 @@ def get_restaurant_details(restaurant_name, sheet_id):
     # Open the Google Sheet using its ID
     spreadsheet = client.open_by_key(sheet_id)
 
-    # Get the first worksheet (adjust as needed)
-    #worksheet = spreadsheet.get_worksheet(0)
+
     worksheet = spreadsheet.get_worksheet(1)
 
     # Get all values in the form of a DataFrame
@@ -537,7 +564,7 @@ def main():
                 ) = process_csv(start_date_time, end_date_time,csv_df)
                 sheet_id = "1HiwS7FPYy3Q5tqZ_cG-Dw0Jsqm0f_kjWp2kaEEzdokw"
 
-                address_resto, abn_no = get_restaurant_details(resto_name, sheet_id)
+                address_resto, abn_no = get_restaurant_details_l(resto_name, sheet_id)
                 generate_and_upload_invoice_l(html_template, total_bill, commission_without_tax, tax, commission_with_tax, resto_name, address_resto, abn_no,google_drive_folder_id, credentials_path,id)
                 st.write(id)
 
