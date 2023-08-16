@@ -483,7 +483,143 @@ def generate_and_upload_invoice_l(html_template, total_amount, commission_amount
 
 # Usage example:
 # generate_and_upload_invoice(html_template, total_amount, commission_amount_ex_tax, tax, commission_amount, restaurant, address_resto, abn_no, google_drive_folder_id, credentials_path)
+import os
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from io import BytesIO
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseDownload, MediaIoBaseUpload
 
+
+def generate_and_upload_invoice_l(
+        html_template,
+        total_amount,
+        commission_amount_ex_tax,
+        tax,
+        commission_amount,
+        restaurant,
+        address_resto,
+        abn_no,
+        google_drive_folder_id,
+        credentials_path,
+        id):
+    # Replace placeholders in the HTML template
+    # Note: You might want to use a better method to format this using an HTML parser or a template engine
+    html_content = html_template.replace('${paid_amount}', str(total_amount))
+    html_content = html_content.replace('${commission_amount_ex_tax}', str(commission_amount_ex_tax))
+    html_content = html_content.replace('${tax}', str(tax))
+    html_content = html_content.replace('${commission_amount_in_tax}', str(commission_amount))
+    html_content = html_content.replace('${restaurant}', str(restaurant))
+    html_content = html_content.replace('${address_resto}', str(address_resto))
+    html_content = html_content.replace('${abn_no}', str(abn_no))
+
+    # Generate PDF from the HTML content using reportlab
+    buffer = BytesIO()
+    c = canvas.Canvas(buffer, pagesize=letter)
+    # This is a basic method; for a complex template, consider using xhtml2pdf or a similar package
+    c.drawString(100, 750, html_content)
+    c.save()
+
+    buffer.seek(0)
+
+    # Authenticate with Google Drive
+    SCOPES = ['https://www.googleapis.com/auth/drive']
+    creds = None
+    if os.path.exists('token.json'):
+        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(credentials_path, SCOPES)
+            creds = flow.run_local_server(port=0)
+            with open('token.json', 'w') as token:
+                token.write(creds.to_json())
+
+    service = build('drive', 'v3', credentials=creds)
+
+    # Upload the output PDF to Google Drive
+    file_metadata = {
+        'name': f'{id}_{restaurant}_Tax Invoice from Qlub.pdf',
+        'parents': [google_drive_folder_id]
+    }
+    media = MediaIoBaseUpload(buffer, mimetype='application/pdf', resumable=True)
+    file = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+    buffer.close()
+
+
+import os
+from io import BytesIO
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from reportlab.lib.utils import ImageReader
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseUpload
+
+
+def generate_and_upload_invoice_lo(
+        html_template,
+        total_amount,
+        commission_amount_ex_tax,
+        tax,
+        commission_amount,
+        restaurant,
+        address_resto,
+        abn_no,
+        google_drive_folder_id,
+        credentials_path,
+        id):
+    # Replace placeholders in the HTML template
+    html_content = html_template.replace('${paid_amount}', str(total_amount))
+    html_content = html_content.replace('${commission_amount_ex_tax}', str(commission_amount_ex_tax))
+    html_content = html_content.replace('${tax}', str(tax))
+    html_content = html_content.replace('${commission_amount_in_tax}', str(commission_amount))
+    html_content = html_content.replace('${restaurant}', str(restaurant))
+    html_content = html_content.replace('${address_resto}', str(address_resto))
+    html_content = html_content.replace('${abn_no}', str(abn_no))
+
+    # Generate PDF from the HTML content using reportlab
+    buffer = BytesIO()
+    c = canvas.Canvas(buffer, pagesize=letter)
+
+    # Add the logo at the top. Adjust the x, y, width, and height as necessary.
+    logo_path = "qlogo.pdf"
+    logo = ImageReader(logo_path)
+    c.drawImage(logo, 50, 730, width=100, height=50)  # Adjust x, y, width, height accordingly
+
+    c.drawString(100, 680, html_content)  # Adjust y-coordinate based on logo's height
+    c.save()
+
+    buffer.seek(0)
+
+    # Authenticate with Google Drive
+    SCOPES = ['https://www.googleapis.com/auth/drive']
+    creds = None
+    if os.path.exists('token.json'):
+        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(credentials_path, SCOPES)
+            creds = flow.run_local_server(port=0)
+            with open('token.json', 'w') as token:
+                token.write(creds.to_json())
+
+    service = build('drive', 'v3', credentials=creds)
+
+    # Upload the output PDF to Google Drive
+    file_metadata = {
+        'name': f'{id}_{restaurant}_Tax Invoice from Qlub.pdf',
+        'parents': [google_drive_folder_id]
+    }
+    media = MediaIoBaseUpload(buffer, mimetype='application/pdf', resumable=True)
+    file = service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+    buffer.close()
 
 
 def generate_and_upload_invoice_to_supabase(html_template, total_amount, commission_amount_ex_tax, tax,
@@ -565,7 +701,7 @@ def main():
                 sheet_id = "1HiwS7FPYy3Q5tqZ_cG-Dw0Jsqm0f_kjWp2kaEEzdokw"
 
                 address_resto, abn_no = get_restaurant_details(resto_name, sheet_id)
-                generate_and_upload_invoice_l(html_template, total_bill, commission_without_tax, tax, commission_with_tax, resto_name, address_resto, abn_no,google_drive_folder_id, credentials_path,id)
+                generate_and_upload_invoice_lo(html_template, total_bill, commission_without_tax, tax, commission_with_tax, resto_name, address_resto, abn_no,google_drive_folder_id, credentials_path,id)
                 st.write(id)
 
         st.write("END")
